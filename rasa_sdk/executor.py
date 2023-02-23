@@ -15,7 +15,7 @@ from rasa_sdk.interfaces import Tracker, ActionNotFoundException, Action
 from rasa_sdk import utils
 
 if typing.TYPE_CHECKING:  # pragma: no cover
-    from rasa_sdk.types import ActionCall
+    from rasa_sdk.types import ActionCall, DomainDict
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,6 @@ class CollectingDispatcher:
     """Send messages back to user"""
 
     def __init__(self) -> None:
-
         self.messages: List[Dict[Text, Any]] = []
 
     def utter_message(
@@ -38,7 +37,7 @@ class CollectingDispatcher:
         elements: Optional[List[Dict[Text, Any]]] = None,
         **kwargs: Any,
     ) -> None:
-        """"Send a text to the output channel"""
+        """ "Send a text to the output channel"""
 
         message = {
             "text": text,
@@ -115,7 +114,7 @@ class CollectingDispatcher:
     def utter_template(
         self, template: Text, tracker: Tracker, silent_fail: bool = False, **kwargs: Any
     ) -> None:
-        """"Send a message to the client based on a template."""
+        """ "Send a message to the client based on a template."""
         warnings.warn(
             "Use of `utter_template` is deprecated. "
             "Use `utter_message(template=<template_name>)` instead.",
@@ -377,12 +376,20 @@ class ActionExecutor:
         action_name = action_call.get("next_action")
         if action_name:
             logger.debug(f"Received request to run '{action_name}'")
+
+            domain = action_call.get("domain", {})
+            base_action_name = self.get_base_action_name(action_name, domain)
+            if base_action_name:
+                logger.debug(
+                    f"Action '{action_name}' changed to base action '{base_action_name}'"
+                )
+                action_name = base_action_name
+
             action = self.actions.get(action_name)
             if not action:
                 raise ActionNotFoundException(action_name)
 
             tracker_json = action_call["tracker"]
-            domain = action_call.get("domain", {})
             tracker = Tracker.from_dict(tracker_json)
             dispatcher = CollectingDispatcher()
 
@@ -400,3 +407,18 @@ class ActionExecutor:
 
         logger.warning("Received an action call without an action.")
         return None
+
+    @staticmethod
+    def get_base_action_name(action_name: Text, domain: "DomainDict") -> Optional[Text]:
+        """Get base action name for current action.
+
+        Args:
+            action_name: current action name
+            domain: the bot's domain
+        Returns:
+            A base action name
+        """
+        actions_params = domain.get("actions_params", {})
+        action = actions_params.get(action_name, {})
+
+        return action.get("base_action")

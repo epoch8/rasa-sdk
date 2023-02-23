@@ -2,7 +2,7 @@ import copy
 import logging
 import typing
 import warnings
-from typing import Any, Dict, Iterator, List, Optional, Text
+from typing import Any, Dict, Iterator, List, Optional, Text, Tuple
 
 from rasa_sdk.events import EventType
 
@@ -340,6 +340,21 @@ class Action:
 
     def __str__(self) -> Text:
         return f"Action('{self.name()}')"
+
+    def get_action_params(
+        self, domain: Dict[Text, Dict]
+    ) -> Tuple[List[Any], Dict[Text, Any]]:
+        """Get args and kwargs for action.
+
+        Args:
+            domain: the bot's domain
+        Returns:
+            A tuple of args and kwargs parameters for action
+        """
+        actions_params = domain.get("actions_params", {})
+        action = actions_params.get(self.name(), {})
+
+        return action.get("args", []), action.get("kwargs", {})
 
 
 class ActionExecutionRejection(Exception):

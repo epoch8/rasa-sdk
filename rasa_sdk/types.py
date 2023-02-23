@@ -38,6 +38,7 @@ class DomainDict(TypedDict):
     slots: Dict[Any, Dict[Text, Any]]
     responses: Dict[Text, List[Dict[Text, Any]]]
     actions: List[Text]
+    actions_params: Dict[Text, Any]
     forms: Dict[Text, Any]
 
 
