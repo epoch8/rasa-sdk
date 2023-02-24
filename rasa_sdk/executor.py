@@ -4,7 +4,19 @@ import logging
 import pkgutil
 import typing
 import warnings
-from typing import Text, List, Dict, Any, Type, Union, Callable, Optional, Set, cast
+from typing import (
+    Text,
+    List,
+    Dict,
+    Tuple,
+    Any,
+    Type,
+    Union,
+    Callable,
+    Optional,
+    Set,
+    cast,
+)
 from collections import namedtuple
 import types
 import sys
@@ -378,7 +390,9 @@ class ActionExecutor:
             logger.debug(f"Received request to run '{action_name}'")
 
             domain = action_call.get("domain", {})
-            base_action_name = self.get_base_action_name(action_name, domain)
+            base_action_name, args, kwargs = self.get_base_action_name(
+                action_name, domain
+            )
             if base_action_name:
                 logger.debug(
                     f"Action '{action_name}' changed to base action '{base_action_name}'"
@@ -394,7 +408,7 @@ class ActionExecutor:
             dispatcher = CollectingDispatcher()
 
             events = await utils.call_potential_coroutine(
-                action(dispatcher, tracker, domain)
+                action(dispatcher, tracker, domain, args=args, kwargs=kwargs)
             )
 
             if not events:
@@ -409,16 +423,22 @@ class ActionExecutor:
         return None
 
     @staticmethod
-    def get_base_action_name(action_name: Text, domain: "DomainDict") -> Optional[Text]:
-        """Get base action name for current action.
+    def get_base_action_name(
+        action_name: Text, domain: "DomainDict"
+    ) -> Tuple[Optional[Text], List[Any], Dict[Text, Any]]:
+        """Get action parameters.
 
         Args:
             action_name: current action name
             domain: the bot's domain
         Returns:
-            A base action name
+            A tuple of base action name, args and kwargs parameters
         """
         actions_params = domain.get("actions_params", {})
         action = actions_params.get(action_name, {})
 
-        return action.get("base_action")
+        base_action_name = action.get("base_action")
+        args = action.get("args", [])
+        kwargs = action.get("kwargs", {})
+
+        return base_action_name, args, kwargs

@@ -2,7 +2,7 @@ import copy
 import logging
 import typing
 import warnings
-from typing import Any, Dict, Iterator, List, Optional, Text, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Text
 
 from rasa_sdk.events import EventType
 
@@ -318,6 +318,8 @@ class Action:
         dispatcher,
         tracker: Tracker,
         domain: "DomainDict",
+        args: Optional[List[Any]] = None,
+        kwargs: Optional[Dict[Text, Any]] = None,
     ) -> List[Dict[Text, Any]]:
         """Execute the side effects of this action.
 
@@ -331,6 +333,8 @@ class Action:
                 is `tracker.latest_message.text` and any other
                 `rasa_sdk.Tracker` property.
             domain: the bot's domain
+            args: list of action arguments
+            kwargs: keyword action arguments
         Returns:
             A dictionary of `rasa_sdk.events.Event` instances that is
                 returned through the endpoint
@@ -340,21 +344,6 @@ class Action:
 
     def __str__(self) -> Text:
         return f"Action('{self.name()}')"
-
-    def get_action_params(
-        self, domain: Dict[Text, Dict]
-    ) -> Tuple[List[Any], Dict[Text, Any]]:
-        """Get args and kwargs for action.
-
-        Args:
-            domain: the bot's domain
-        Returns:
-            A tuple of args and kwargs parameters for action
-        """
-        actions_params = domain.get("actions_params", {})
-        action = actions_params.get(self.name(), {})
-
-        return action.get("args", []), action.get("kwargs", {})
 
 
 class ActionExecutionRejection(Exception):
