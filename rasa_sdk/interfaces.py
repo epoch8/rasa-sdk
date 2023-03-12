@@ -318,6 +318,8 @@ class Action:
         dispatcher,
         tracker: Tracker,
         domain: "DomainDict",
+        args: Optional[List[Any]] = None,
+        kwargs: Optional[Dict[Text, Any]] = None,
     ) -> List[Dict[Text, Any]]:
         """Execute the side effects of this action.
 
@@ -331,6 +333,8 @@ class Action:
                 is `tracker.latest_message.text` and any other
                 `rasa_sdk.Tracker` property.
             domain: the bot's domain
+            args: list of action arguments
+            kwargs: keyword action arguments
         Returns:
             A dictionary of `rasa_sdk.events.Event` instances that is
                 returned through the endpoint
