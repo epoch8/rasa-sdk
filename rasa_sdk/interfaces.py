@@ -357,8 +357,8 @@ class ActionWithParams(Action):
         dispatcher,
         tracker: Tracker,
         domain: "DomainDict",
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[Text, Any]] = None,
+        *args,
+        **kwargs,
     ) -> List[Dict[Text, Any]]:
         """Execute the side effects of this action.
 

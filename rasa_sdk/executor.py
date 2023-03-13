@@ -412,14 +412,9 @@ class ActionExecutor:
             tracker = Tracker.from_dict(tracker_json)
             dispatcher = CollectingDispatcher()
 
-            if isinstance(action.__self__, ActionWithParams):  # type: ignore
-                action_result = action(
-                    dispatcher, tracker, domain, args=args, kwargs=kwargs
-                )
-            else:
-                action_result = action(dispatcher, tracker, domain)
-
-            events = await utils.call_potential_coroutine(action_result)
+            events = await utils.call_potential_coroutine(
+                action(dispatcher, tracker, domain, *args, **kwargs)
+            )
 
             if not events:
                 # make sure the action did not just return `None`...
@@ -450,5 +445,9 @@ class ActionExecutor:
         base_action_name = action.get("base_action")
         args = action.get("args", [])
         kwargs = action.get("kwargs", {})
+
+        kwargs.pop("dispatcher", None)
+        kwargs.pop("tracker", None)
+        kwargs.pop("domain", None)
 
         return base_action_name, args, kwargs

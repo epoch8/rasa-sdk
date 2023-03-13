@@ -29,8 +29,8 @@ class CustomAsyncActionWithParams(ActionWithParams):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[Text, Any]] = None,
+        *args,
+        **kwargs,
     ) -> List[Dict[Text, Any]]:
         return [SlotSet("args", str(args)), SlotSet("kwargs", str(kwargs))]
 
@@ -57,7 +57,7 @@ class CustomActionWithParams(ActionWithParams):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[Text, Any]] = None,
+        *args,
+        **kwargs,
     ) -> List[Dict[Text, Any]]:
         return [SlotSet("args", str(args)), SlotSet("kwargs", str(kwargs))]
