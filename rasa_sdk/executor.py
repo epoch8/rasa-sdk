@@ -22,7 +22,12 @@ import types
 import sys
 import os
 
-from rasa_sdk.interfaces import Tracker, ActionNotFoundException, Action
+from rasa_sdk.interfaces import (
+    Tracker,
+    ActionNotFoundException,
+    Action,
+    ActionWithParams,
+)
 
 from rasa_sdk import utils
 
@@ -407,9 +412,14 @@ class ActionExecutor:
             tracker = Tracker.from_dict(tracker_json)
             dispatcher = CollectingDispatcher()
 
-            events = await utils.call_potential_coroutine(
-                action(dispatcher, tracker, domain, args=args, kwargs=kwargs)
-            )
+            if isinstance(action.__self__, ActionWithParams):  # type: ignore
+                action_result = action(
+                    dispatcher, tracker, domain, args=args, kwargs=kwargs
+                )
+            else:
+                action_result = action(dispatcher, tracker, domain)
+
+            events = await utils.call_potential_coroutine(action_result)
 
             if not events:
                 # make sure the action did not just return `None`...

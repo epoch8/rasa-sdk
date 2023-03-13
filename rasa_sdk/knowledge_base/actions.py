@@ -105,8 +105,6 @@ class ActionQueryKnowledgeBase(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: "DomainDict",
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[Text, Any]] = None,
     ) -> List[Dict[Text, Any]]:
         """
         Executes this action. If the user ask a question about an attribute,

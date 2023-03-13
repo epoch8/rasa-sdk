@@ -22,7 +22,7 @@ def test_server_health_returns_200():
 def test_server_list_actions_returns_200():
     request, response = app.test_client.get("/actions")
     assert response.status == 200
-    assert len(response.json) == 2
+    assert len(response.json) == 4
 
 
 def test_server_webhook_unknown_action_returns_404():
@@ -46,6 +46,30 @@ def test_server_webhook_custom_action_returns_200():
     assert response.status == 200
 
 
+def test_server_webhook_custom_action_with_params_returns_200():
+    data = {
+        "next_action": "custom_action_with_params_dummy",
+        "tracker": {"sender_id": "1", "conversation_id": "default"},
+        "domain": {
+            "actions_params": {
+                "custom_action_with_params_dummy": {
+                    "base_action": "custom_action_with_params",
+                    "args": ["test_args_1", "test_args_2"],
+                    "kwargs": {"kwargs1": "test_kwargs1"},
+                }
+            }
+        },
+    }
+    request, response = app.test_client.post("/webhook", data=json.dumps(data))
+    events = response.json.get("events")
+
+    assert events == [
+        SlotSet("args", "['test_args_1', 'test_args_2']"),
+        SlotSet("kwargs", "{'kwargs1': 'test_kwargs1'}"),
+    ]
+    assert response.status == 200
+
+
 def test_server_webhook_custom_async_action_returns_200():
     data = {
         "next_action": "custom_async_action",
@@ -55,6 +79,30 @@ def test_server_webhook_custom_async_action_returns_200():
     events = response.json.get("events")
 
     assert events == [SlotSet("test", "foo"), SlotSet("test2", "boo")]
+    assert response.status == 200
+
+
+def test_server_webhook_custom_async_action_with_params_returns_200():
+    data = {
+        "next_action": "custom_async_action_with_params_dummy",
+        "tracker": {"sender_id": "1", "conversation_id": "default"},
+        "domain": {
+            "actions_params": {
+                "custom_async_action_with_params_dummy": {
+                    "base_action": "custom_async_action_with_params",
+                    "args": ["test_args_1", "test_args_2"],
+                    "kwargs": {"kwargs1": "test_kwargs1"},
+                }
+            }
+        },
+    }
+    request, response = app.test_client.post("/webhook", data=json.dumps(data))
+    events = response.json.get("events")
+
+    assert events == [
+        SlotSet("args", "['test_args_1', 'test_args_2']"),
+        SlotSet("kwargs", "{'kwargs1': 'test_kwargs1'}"),
+    ]
     assert response.status == 200
 
 
