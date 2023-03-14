@@ -1,5 +1,5 @@
 import typing
-from typing import Text, Dict, List, Any
+from typing import Text, Dict, List, Any, Optional
 
 from rasa_sdk import Action
 from rasa_sdk.events import SlotSet
@@ -117,6 +117,8 @@ class ActionQueryKnowledgeBase(Action):
             dispatcher: the dispatcher
             tracker: the tracker
             domain: the domain
+            args: list of action arguments
+            kwargs: keyword action arguments
 
         Returns: list of slots
 

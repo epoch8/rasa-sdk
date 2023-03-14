@@ -331,6 +331,49 @@ class Action:
                 is `tracker.latest_message.text` and any other
                 `rasa_sdk.Tracker` property.
             domain: the bot's domain
+            args: list of action arguments
+            kwargs: keyword action arguments
+        Returns:
+            A dictionary of `rasa_sdk.events.Event` instances that is
+                returned through the endpoint
+        """
+
+        raise NotImplementedError("An action must implement its run method")
+
+    def __str__(self) -> Text:
+        return f"Action('{self.name()}')"
+
+
+class ActionWithParams(Action):
+    """Next action to be taken in response to a dialogue state."""
+
+    def name(self) -> Text:
+        """Unique identifier of this simple action."""
+
+        raise NotImplementedError("An action must implement a name")
+
+    async def run(
+        self,
+        dispatcher,
+        tracker: Tracker,
+        domain: "DomainDict",
+        *args,
+        **kwargs,
+    ) -> List[Dict[Text, Any]]:
+        """Execute the side effects of this action.
+
+        Args:
+            dispatcher: the dispatcher which is used to
+                send messages back to the user. Use
+                `dispatcher.utter_message()` for sending messages.
+            tracker: the state tracker for the current
+                user. You can access slot values using
+                `tracker.get_slot(slot_name)`, the most recent user message
+                is `tracker.latest_message.text` and any other
+                `rasa_sdk.Tracker` property.
+            domain: the bot's domain
+            args: list of action arguments
+            kwargs: keyword action arguments
         Returns:
             A dictionary of `rasa_sdk.events.Event` instances that is
                 returned through the endpoint
