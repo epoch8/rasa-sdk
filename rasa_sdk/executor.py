@@ -396,7 +396,7 @@ class ActionExecutor:
 
             domain = action_call.get("domain", {})
             base_action_name, args, kwargs = self.get_base_action_name(
-                action_name, domain
+                action_name, domain  # type: ignore
             )
             if base_action_name:
                 logger.debug(

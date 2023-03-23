@@ -22,7 +22,58 @@ def test_server_health_returns_200():
 def test_server_list_actions_returns_200():
     request, response = app.test_client.get("/actions")
     assert response.status == 200
-    assert len(response.json) == 4
+    assert len(response.json) == 5
+
+
+def test_server_list_actions_response_returns_200():
+    request, response = app.test_client.get("/actions")
+    assert response.status == 200
+    result = [
+        {
+            "name": "custom_async_action",
+            "description": "",
+        },
+        {
+            "name": "custom_action",
+            "description": "",
+        },
+        {
+            "name": "custom_action_with_description",
+            "description": "test action description",
+        },
+        {
+            "args": [
+                {"description": "test_arg1", "type": "str"},
+                {"description": "test_arg2", "type": "str"},
+            ],
+            "description": "CustomAsyncActionWithParams description",
+            "kwargs": [
+                {
+                    "description": "kwarg1_description",
+                    "name": "test_kwarg1",
+                    "type": "int",
+                },
+                {
+                    "description": "kwarg2_description",
+                    "name": "test_kwarg2",
+                    "type": "bool",
+                },
+            ],
+            "name": "custom_async_action_with_params",
+        },
+        {
+            "description": "CustomActionWithParams description",
+            "kwargs": [
+                {
+                    "description": "kwarg1_description",
+                    "name": "test_kwarg1",
+                    "type": "int",
+                }
+            ],
+            "name": "custom_action_with_params",
+        },
+    ]
+    assert response.json == result
 
 
 def test_server_webhook_unknown_action_returns_404():

@@ -118,7 +118,11 @@ def create_app(
         if auto_reload:
             executor.reload()
 
-        body = [{"name": k} for k in executor.actions.keys()]
+        body = []
+        for key, value in executor.actions.items():
+            action_body = {"name": key}
+            action_body.update(**value.__self__.description())  # type: ignore
+            body.append(action_body)
         return response.json(body, status=200)
 
     return app
