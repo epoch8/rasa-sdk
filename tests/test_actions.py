@@ -61,3 +61,18 @@ class CustomActionWithParams(ActionWithParams):
         **kwargs,
     ) -> List[Dict[Text, Any]]:
         return [SlotSet("args", str(args)), SlotSet("kwargs", str(kwargs))]
+
+
+class CustomActionRaisingException(Action):
+    def name(cls) -> Text:
+        return "custom_action_exception"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+        *args,
+        **kwargs,
+    ) -> List[Dict[Text, Any]]:
+        raise Exception("test exception")

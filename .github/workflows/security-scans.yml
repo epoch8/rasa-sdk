@@ -5,25 +5,63 @@ on:
     types: [opened, synchronize, labeled]
 
 jobs:
-  cleanup_runs:
-    name: Cancel old branch builds
-    runs-on: ubuntu-latest
-    if: "!startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main'"
-
+  snyk:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Find and cancel old builds of this branch
-        uses: styfle/cancel-workflow-action@0.6.0
+      - uses: actions/checkout@v3
+      - name: Run Snyk to check for package vulnerabilities
+        uses: snyk/actions/python-3.8@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          access_token: "${{ secrets.GITHUB_TOKEN }}"
+          command: monitor
+          args: --all-projects --org=rasa --skip-unresolved
 
-  gitleaks:
+  trivy:
     name: Detecting hardcoded secrets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       with:
         # Fetch all history for all tags and branches
         fetch-depth: '0'
-
-    - name: Gitleaks - detecting hardcoded secrets
-      uses: zricethezav/gitleaks-action@v1.3.0
+    - name: Run Trivy vulnerability scanner
+      id: trivy
+      uses: aquasecurity/trivy-action@d63413b0a4a4482237085319f7f4a1ce99a8f2ac
+      continue-on-error: true
+      with:
+        format: 'table'
+        scan-type: 'fs'
+        exit-code: '1'
+        security-checks: 'secret'
+    - name: Alert on secret finding
+      if: steps.trivy.outcome == 'failure'
+      uses: slackapi/slack-github-action@936158bbe252e9a6062e793ea4609642c966e302
+      with:
+        payload: |
+          {
+            "text": "*A secret was detected in a GitHub commit in the repo ${{ github.repository }}.*\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*A secret was detected in a GitHub commit in the repo ${{ github.repository }}.*\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                }
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CODESECURITY_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    - name: Fail build if a secret is found
+      if: steps.trivy.outcome == 'failure'
+      run: |
+        echo "=========================================================="
+        echo "| This build has failed because Trivy detected a secret. |"
+        echo "=========================================================="
+        echo "1. Check the step 'Run Trivy vulnerability scanner' for output to help you find the secret."
+        echo "2. If the finding is a false positive, add it as an entry to trivy-secret.yaml in the root of the repo to suppress the finding."
+        echo "3. If the finding is valid, the security team can help advise your next steps."
+        exit 1

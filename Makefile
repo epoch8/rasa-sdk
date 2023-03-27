@@ -20,8 +20,6 @@ install:
 	poetry run python -m pip install -U pip
 	poetry install
 
-install-docs:
-	cd docs/ && yarn install
 
 clean:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -30,17 +28,18 @@ clean:
 	rm -rf build/
 	rm -rf dist/
 	rm -rf *.egg-info
-	rm -rf docs/build
-	rm -rf docs/.docusaurus
 
 types:
 	poetry run mypy rasa_sdk
+
+formatter:
+	poetry run black rasa_sdk tests
 
 lint:
 	poetry run flake8 rasa_sdk tests --extend-ignore D
 	poetry run black --check rasa_sdk tests
 	make lint-docstrings
-
+	
  # Compare against `main` if no branch was provided
 BRANCH ?= main
 lint-docstrings:
@@ -66,17 +65,6 @@ cleanup-generated-changelog:
 	git reset HEAD CHANGELOG.mdx
 	git ls-files --deleted | xargs git checkout
 	git checkout CHANGELOG.mdx
-
-prepare-docs:
-	cd docs/ && poetry run yarn pre-build
-
-docs: prepare-docs
-	cd docs/ && yarn build
-
-test-docs: generate-pending-changelog docs
-
-livedocs:
-	cd docs/ && poetry run yarn start
 
 release:
 	poetry run python scripts/release.py

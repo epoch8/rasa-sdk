@@ -106,8 +106,9 @@ class ActionQueryKnowledgeBase(Action):
         tracker: Tracker,
         domain: "DomainDict",
     ) -> List[Dict[Text, Any]]:
-        """
-        Executes this action. If the user ask a question about an attribute,
+        """Executes this action.
+
+        If the user ask a question about an attribute,
         the knowledge base is queried for that attribute. Otherwise, if no
         attribute was detected in the request or the user is talking about a new
         object type, multiple objects of the requested type are returned from the
@@ -221,7 +222,7 @@ class ActionQueryKnowledgeBase(Action):
             self.use_last_object_mention,
         )
 
-        if not object_name or not attribute:
+        if object_name is None or not attribute:
             dispatcher.utter_message(response="utter_ask_rephrase")
             return [SlotSet(SLOT_MENTION, None)]
 

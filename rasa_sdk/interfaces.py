@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional, Text
 from rasa_sdk.events import EventType
 
 if typing.TYPE_CHECKING:  # pragma: no cover
+    from rasa_sdk.executor import CollectingDispatcher
     from rasa_sdk.types import DomainDict, TrackerState
 
 
@@ -134,8 +135,8 @@ class Tracker:
             x.get("value")
             for x in entities
             if x.get("entity") == entity_type
-            and (entity_group is None or x.get("group") == entity_group)
-            and (entity_role is None or x.get("role") == entity_role)
+            and x.get("group") == entity_group
+            and x.get("role") == entity_role
         )
 
     def get_latest_input_channel(self) -> Optional[Text]:
@@ -164,6 +165,17 @@ class Tracker:
     def events_after_latest_restart(self) -> List[dict]:
         """Return a list of events after the most recent restart."""
         return list(self.events)[self.idx_after_latest_restart() :]
+
+    @property
+    def active_loop_name(self) -> Optional[Text]:
+        """Get the name of the currently active loop.
+
+        Returns: `None` if no active loop or the name of the currently active loop.
+        """
+        if not self.active_loop or self.active_loop.get("name") == "should_not_be_set":
+            return None
+
+        return self.active_loop.get("name")
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(self, type(other)):
@@ -247,16 +259,20 @@ class Tracker:
         """
 
         slots: Dict[Text, Any] = {}
+        count: int = 0
 
         for event in reversed(self.events):
             # The `FormAction` in Rasa Open Source will append all slot candidates
             # at the end of the tracker events.
             if event["event"] == "slot":
-                slots[event["name"]] = event["value"]
+                count += 1
             else:
                 # Stop as soon as there is another event type as this means that we
                 # checked all potential slot candidates.
                 break
+
+        for event in self.events[len(self.events) - count :]:
+            slots[event["name"]] = event["value"]
 
         return slots
 
@@ -315,7 +331,7 @@ class Action:
 
     async def run(
         self,
-        dispatcher,
+        dispatcher: "CollectingDispatcher",
         tracker: Tracker,
         domain: "DomainDict",
     ) -> List[Dict[Text, Any]]:

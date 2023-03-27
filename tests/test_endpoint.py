@@ -1,11 +1,16 @@
 import pytest
 import json
+import zlib
 
 import rasa_sdk.endpoint as ep
 from rasa_sdk.events import SlotSet
 
 # noinspection PyTypeChecker
 app = ep.create_app(None)
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def test_endpoint_exit_for_unknown_actions_package():
@@ -22,7 +27,7 @@ def test_server_health_returns_200():
 def test_server_list_actions_returns_200():
     request, response = app.test_client.get("/actions")
     assert response.status == 200
-    assert len(response.json) == 4
+    assert len(response.json) == 5
 
 
 def test_server_webhook_unknown_action_returns_404():
@@ -32,6 +37,17 @@ def test_server_webhook_unknown_action_returns_404():
     }
     request, response = app.test_client.post("/webhook", data=json.dumps(data))
     assert response.status == 404
+
+
+def test_server_webhook_handles_action_exception():
+    data = {
+        "next_action": "custom_action_exception",
+        "tracker": {"sender_id": "1", "conversation_id": "default"},
+    }
+    request, response = app.test_client.post("/webhook", data=json.dumps(data))
+    assert response.status == 500
+    assert response.json.get("error") == "test exception"
+    assert response.json.get("request_body") == data
 
 
 def test_server_webhook_custom_action_returns_200():
@@ -147,3 +163,21 @@ def test_arg_parser_actions_params_module_style():
     args = ["--actions", "actions.act"]
     cmdline_args = parser.parse_args(args)
     assert cmdline_args.actions == "actions.act"
+
+
+def test_server_webhook_custom_action_encoded_data_returns_200():
+    data = {
+        "next_action": "custom_action",
+        "tracker": {"sender_id": "1", "conversation_id": "default"},
+        "domain": {"intents": ["greet", "goodbye"]},
+    }
+
+    request, response = app.test_client.post(
+        "/webhook",
+        data=zlib.compress(json.dumps(data).encode()),
+        headers={"Content-encoding": "deflate"},
+    )
+    events = response.json.get("events")
+
+    assert events == [SlotSet("test", "bar")]
+    assert response.status == 200
