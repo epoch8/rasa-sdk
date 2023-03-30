@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Text
+from typing import Any, Dict, List, Optional, Text, Literal
 
 from typing_extensions import TypedDict
 
@@ -57,3 +57,24 @@ class ActionCall(TypedDict):
     domain: DomainDict
     # rasa version
     version: Text
+
+
+class ParameterDict(TypedDict):
+    """A dictionary representation of the parameter."""
+
+    name: Optional[Text]
+    description: Text
+    type: Literal["str", "int", "float", "bool"]
+
+
+class DescriptionDict(TypedDict):
+    """A dictionary representation of the action's description."""
+
+    description: Text
+
+
+class DescriptionWithParamsDict(DescriptionDict):
+    """A dictionary representation of the action's description with parameters."""
+
+    args: List[ParameterDict]
+    kwargs: List[ParameterDict]

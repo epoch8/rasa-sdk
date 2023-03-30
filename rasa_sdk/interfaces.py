@@ -7,8 +7,12 @@ from typing import Any, Dict, Iterator, List, Optional, Text
 from rasa_sdk.events import EventType
 
 if typing.TYPE_CHECKING:  # pragma: no cover
-    from rasa_sdk.types import DomainDict, TrackerState
-
+    from rasa_sdk.types import (
+        DomainDict,
+        TrackerState,
+        DescriptionDict,
+        DescriptionWithParamsDict,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -343,6 +347,11 @@ class Action:
     def __str__(self) -> Text:
         return f"Action('{self.name()}')"
 
+    @staticmethod
+    def description() -> "DescriptionDict":
+        """Return description of this action."""
+        return {"description": ""}
+
 
 class ActionWithParams(Action):
     """Next action to be taken in response to a dialogue state."""
@@ -384,12 +393,17 @@ class ActionWithParams(Action):
     def __str__(self) -> Text:
         return f"Action('{self.name()}')"
 
+    @staticmethod
+    def description() -> "DescriptionWithParamsDict":
+        """Return description of this action."""
+        raise NotImplementedError("An action must implement its run method")
+
 
 class ActionExecutionRejection(Exception):
-    """Raising this exception will allow other policies
-    to predict another action"""
+    """Raising this exception will allow other policies to predict another action."""
 
     def __init__(self, action_name: Text, message: Optional[Text] = None) -> None:
+        """Initialize action exception."""
         self.action_name = action_name
         self.message = message or f"Custom action '{action_name}' rejected execution."
 
