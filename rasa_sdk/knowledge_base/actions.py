@@ -13,6 +13,7 @@ from rasa_sdk.knowledge_base.utils import (
     SLOT_LISTED_OBJECTS,
     get_object_name,
     get_attribute_slots,
+    match_extracted_entities_to_object_type,
 )
 from rasa_sdk import utils
 from rasa_sdk.executor import CollectingDispatcher
@@ -63,11 +64,17 @@ class ActionQueryKnowledgeBase(Action):
         """
         if attribute_value:
             dispatcher.utter_message(
-                text=f"'{object_name}' has the value '{attribute_value}' for attribute '{attribute_name}'."
+                text=(
+                    f"'{object_name}' has the value '{attribute_value}' "
+                    f"for attribute '{attribute_name}'."
+                )
             )
         else:
             dispatcher.utter_message(
-                text=f"Did not find a valid value for attribute '{attribute_name}' for object '{object_name}'."
+                text=(
+                    f"Did not find a valid value for attribute '{attribute_name}' "
+                    f"for object '{object_name}'."
+                )
             )
 
     async def utter_objects(
@@ -106,13 +113,12 @@ class ActionQueryKnowledgeBase(Action):
         tracker: Tracker,
         domain: "DomainDict",
     ) -> List[Dict[Text, Any]]:
-        """Executes this action.
-
-        If the user ask a question about an attribute,
+        """
+        Executes this action. If the user ask a question about an attribute,
         the knowledge base is queried for that attribute. Otherwise, if no
-        attribute was detected in the request or the user is talking about a new
-        object type, multiple objects of the requested type are returned from the
-        knowledge base.
+        attribute was detected in the latest request it assumes user is talking
+        about a new object type and, multiple objects of the requested type are
+        returned from the knowledge base.
 
         Args:
             dispatcher: the dispatcher
@@ -127,20 +133,35 @@ class ActionQueryKnowledgeBase(Action):
         object_type = tracker.get_slot(SLOT_OBJECT_TYPE)
         last_object_type = tracker.get_slot(SLOT_LAST_OBJECT_TYPE)
         attribute = tracker.get_slot(SLOT_ATTRIBUTE)
+        has_mention = tracker.get_slot(SLOT_MENTION) is not None
 
-        new_request = object_type != last_object_type
+        # check if attribute entity is found in latest user message. This is used
+        # to track whether the request is to query objects or query attributes
+        has_attribute_in_latest_message = any(
+            entity.get("entity") == "attribute"
+            for entity in tracker.latest_message["entities"]
+        )
 
         if not object_type:
-            # object type always needs to be set as this is needed to query the
-            # knowledge base
-            dispatcher.utter_message(response="utter_ask_rephrase")
-            return []
+            # sets the object type dynamically from entities if object_type is not
+            # found in user query
+            object_types = self.knowledge_base.get_object_types()
+            object_type = match_extracted_entities_to_object_type(tracker, object_types)
+            set_object_type_slot_event = [SlotSet(SLOT_OBJECT_TYPE, object_type)]
+            tracker.add_slots(
+                set_object_type_slot_event
+            )  # temporarily set the `object_type_slot` to extracted value
 
-        if not attribute or new_request:
+        if object_type and not has_attribute_in_latest_message:
             return await self._query_objects(dispatcher, object_type, tracker)
-        elif attribute:
+        elif object_type and attribute:
             return await self._query_attribute(
                 dispatcher, object_type, attribute, tracker
+            )
+
+        if last_object_type and has_mention and attribute:
+            return await self._query_attribute(
+                dispatcher, last_object_type, attribute, tracker
             )
 
         dispatcher.utter_message(response="utter_ask_rephrase")
@@ -163,7 +184,6 @@ class ActionQueryKnowledgeBase(Action):
         object_attributes = await utils.call_potential_coroutine(
             self.knowledge_base.get_attributes_of_object(object_type)
         )
-
         # get all set attribute slots of the object type to be able to filter the
         # list of objects
         attributes = get_attribute_slots(tracker, object_attributes)
@@ -171,7 +191,6 @@ class ActionQueryKnowledgeBase(Action):
         objects = await utils.call_potential_coroutine(
             self.knowledge_base.get_objects(object_type, attributes)
         )
-
         await utils.call_potential_coroutine(
             self.utter_objects(dispatcher, object_type, objects)
         )
@@ -185,8 +204,13 @@ class ActionQueryKnowledgeBase(Action):
 
         last_object = None if len(objects) > 1 else objects[0][key_attribute]
 
+        # To prevent the user to first ask to list the objects for an object type,
+        # the object type has to be extracted while the action is executed.
+        # Therefore we need to reset the SLOT_OBJECT_TYPE to
+        # None to enable this functionality.
+
         slots = [
-            SlotSet(SLOT_OBJECT_TYPE, object_type),
+            SlotSet(SLOT_OBJECT_TYPE, None),
             SlotSet(SLOT_MENTION, None),
             SlotSet(SLOT_ATTRIBUTE, None),
             SlotSet(SLOT_LAST_OBJECT, last_object),
@@ -215,7 +239,6 @@ class ActionQueryKnowledgeBase(Action):
 
         Returns: list of slots
         """
-
         object_name = get_object_name(
             tracker,
             self.knowledge_base.ordinal_mention_mapping,
@@ -254,8 +277,13 @@ class ActionQueryKnowledgeBase(Action):
             )
         )
 
+        # To prevent the user to first ask to list the objects for an object type,
+        # the object type has to be extracted while the action is executed.
+        # Therefore we need to reset the SLOT_OBJECT_TYPE to
+        # None to enable this functionality.
+
         slots = [
-            SlotSet(SLOT_OBJECT_TYPE, object_type),
+            SlotSet(SLOT_OBJECT_TYPE, None),
             SlotSet(SLOT_ATTRIBUTE, None),
             SlotSet(SLOT_MENTION, None),
             SlotSet(SLOT_LAST_OBJECT, object_identifier),
