@@ -16,8 +16,11 @@ from sanic_cors import CORS
 from rasa_sdk import utils
 from rasa_sdk.cli.arguments import add_endpoint_arguments
 from rasa_sdk.constants import DEFAULT_SERVER_PORT
-from rasa_sdk.executor import ActionExecutor, CollectingDispatcher
-from rasa_sdk.interfaces import ActionExecutionRejection, ActionNotFoundException, Tracker
+from rasa_sdk.executor import ActionExecutor
+from rasa_sdk.interfaces import (
+    ActionExecutionRejection,
+    ActionNotFoundException,
+)
 from rasa_sdk.plugin import plugin_manager
 
 logger = logging.getLogger(__name__)
