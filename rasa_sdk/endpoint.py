@@ -30,7 +30,6 @@ def configure_cors(
     app: Sanic, cors_origins: Union[Text, List[Text], None] = ""
 ) -> None:
     """Configure CORS origins for the given app."""
-
     CORS(
         app, resources={r"/*": {"origins": cors_origins or ""}}, automatic_options=True
     )
@@ -42,7 +41,6 @@ def create_ssl_context(
     ssl_password: Optional[Text] = None,
 ) -> Optional[SSLContext]:
     """Create a SSL context if a certificate is passed."""
-
     if ssl_certificate:
         import ssl
 
@@ -57,7 +55,6 @@ def create_ssl_context(
 
 def create_argument_parser():
     """Parse all the command line arguments for the run script."""
-
     parser = argparse.ArgumentParser(description="starts the action endpoint")
     add_endpoint_arguments(parser)
     utils.add_logging_level_option_arguments(parser)
@@ -66,7 +63,7 @@ def create_argument_parser():
 
 
 def get_info_about_action_parameters(method: Callable) -> List[Dict[Text, Any]]:
-    parameter_names = method.__code__.co_varnames[:method.__code__.co_argcount]
+    parameter_names = method.__code__.co_varnames[: method.__code__.co_argcount]
     defaults = method.__defaults__ if method.__defaults__ else []
     num_required_params = method.__code__.co_argcount - len(defaults)
     default_values = [None] * num_required_params + list(defaults)
@@ -81,11 +78,7 @@ def get_info_about_action_parameters(method: Callable) -> List[Dict[Text, Any]]:
         if param_type is not None:
             match = re.search(r"'([^']*)'", param_type)
             param_type = match.group(1) if match else param_type
-        param_info = {
-            "name": name,
-            "default": default,
-            "type": param_type
-        }
+        param_info = {"name": name, "default": default, "type": param_type}
         parameters_info.append(param_info)
     return parameters_info
 
@@ -166,7 +159,8 @@ def create_app(
                 "name": k,
                 "doc": get_action_documentation(v),
                 "parameters": get_info_about_action_parameters(v),
-            } for k, v in executor.actions.items()
+            }
+            for k, v in executor.actions.items()
         ]
         return response.json(body, status=200)
 
