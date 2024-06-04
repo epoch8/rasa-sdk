@@ -1,5 +1,5 @@
 import typing
-from typing import Text, Dict, List, Any, Optional
+from typing import Text, Dict, List, Any
 
 from rasa_sdk import Action
 from rasa_sdk.events import SlotSet
