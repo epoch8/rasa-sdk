@@ -1,4 +1,4 @@
-from typing import List, Dict, Text, Any, Optional
+from typing import List, Dict, Text, Any
 
 from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet

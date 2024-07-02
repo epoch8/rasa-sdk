@@ -26,7 +26,6 @@ from rasa_sdk.interfaces import (
     Tracker,
     ActionNotFoundException,
     Action,
-    ActionWithParams,
 )
 
 from rasa_sdk import utils
@@ -400,7 +399,8 @@ class ActionExecutor:
             )
             if base_action_name:
                 logger.debug(
-                    f"Action '{action_name}' changed to base action '{base_action_name}'"
+                    f"Action '{action_name}' changed to"
+                    f" base action '{base_action_name}'"
                 )
                 action_name = base_action_name
 
