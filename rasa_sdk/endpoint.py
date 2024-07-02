@@ -1,7 +1,8 @@
+import re
 import argparse
 import logging
 import types
-from typing import List, Text, Union, Optional, Any
+from typing import List, Text, Union, Optional, Any, Dict
 from ssl import SSLContext
 
 from sanic import Sanic, response
@@ -55,6 +56,31 @@ def create_argument_parser():
     utils.add_logging_level_option_arguments(parser)
     utils.add_logging_file_arguments(parser)
     return parser
+
+
+def get_info_about_action_parameters(method: Callable) -> List[Dict[Text, Any]]:
+    parameter_names = method.__code__.co_varnames[: method.__code__.co_argcount]
+    defaults = method.__defaults__ if method.__defaults__ else []
+    num_required_params = method.__code__.co_argcount - len(defaults)
+    default_values = [None] * num_required_params + list(defaults)
+
+    annotations = method.__annotations__
+    excluded_params = {"domain", "self", "collection", "dispatcher", "tracker"}
+    parameters_info = []
+    for name, default in zip(parameter_names, default_values):
+        param_type = str(annotations.get(name, ""))
+        if name in excluded_params:
+            continue
+        if param_type is not None:
+            match = re.search(r"'([^']*)'", param_type)
+            param_type = match.group(1) if match else param_type
+        param_info = {"name": name, "default": default, "type": param_type}
+        parameters_info.append(param_info)
+    return parameters_info
+
+
+def get_action_documentation(method: Callable) -> Text:
+    return method.__doc__ or ""
 
 
 def create_app(
@@ -118,11 +144,14 @@ def create_app(
         if auto_reload:
             executor.reload()
 
-        body = []
-        for key, value in executor.actions.items():
-            action_body = {"name": key}
-            action_body.update(**value.__self__.description())  # type: ignore
-            body.append(action_body)
+        body = [
+            {
+                "name": k,
+                "doc": get_action_documentation(v),
+                "parameters": get_info_about_action_parameters(v),
+            }
+            for k, v in executor.actions.items()
+        ]
         return response.json(body, status=200)
 
     return app
